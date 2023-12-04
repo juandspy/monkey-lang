@@ -11,12 +11,17 @@ type Lexer struct {
 	// TODO: support Unicode and emojis by using `rune` not byte
 }
 
+// New returns a pointer to a Lexer with its properties already initialized
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
 	l.readChar()
 	return l
 }
 
+// readChar updates the Lexer properties so that:
+// - `ch` is set to the character in the position `readPosition`
+// - `position“ is set to the readPosition
+// - `readPosition“ is incremented by 1
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		// Check whether we have reached the end of input.
@@ -37,6 +42,8 @@ func (l *Lexer) readChar() {
 
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
+
+	l.skipWhitespace()
 
 	// Get the token from the current character under examination
 	switch l.ch {
@@ -59,11 +66,49 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	default:
+		// in case of an unknown token
+		if isLetter(l.ch) {
+			// if it's a letter then read it as an identifier (IDENT)
+			tok.Literal = l.readIdentifier()
+			tok.Type = token.LookupIdent(tok.Literal)
+			return tok // early exiting as readIdentifier already calls readChar
+		} else {
+			// if it's not a letter then we don't know how to handle
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 
 	l.readChar() // Advance the pointer so next time so the l.ch is already updated
 	return tok
 }
+
+// newToken returns a Token initialized with it's type and literal
 func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
+}
+
+// readIdentifier reads in an identifier and advances our lexer’s positions until
+// it encounters a non-letter-character.
+// This way, when the lexer encounters something like "foobar + 1", it will start
+// with the "f" and end with the "r", returning the complete identifier
+func (l *Lexer) readIdentifier() string {
+	position := l.position
+	for isLetter(l.ch) {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
+// isLetter returns true if the input is a letter or underscore
+// (letting us use "foo_bar" for example)
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+// skipWhitespace calls readChar until it encounters a non whitespace character
+func (l *Lexer) skipWhitespace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
 }
