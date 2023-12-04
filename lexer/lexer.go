@@ -73,6 +73,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok // early exiting as readIdentifier already calls readChar
+		} else if isDigit(l.ch) {
+			// if it's a digit then read it as an integer (INT)
+			tok.Literal = l.readNumber()
+			tok.Type = token.INT
+			return tok
 		} else {
 			// if it's not a letter then we don't know how to handle
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -100,10 +105,26 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[position:l.position]
 }
 
+// readNumber reads in an identifier and advances our lexer’s positions until
+// it encounters a non-digit-character
+func (l *Lexer) readNumber() string {
+	position := l.position
+	for isDigit(l.ch) {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
 // isLetter returns true if the input is a letter or underscore
 // (letting us use "foo_bar" for example)
 func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+// isDigit returns true if the input is a digit
+func isDigit(ch byte) bool {
+	// TODO: Add support for floats
+	return '0' <= ch && ch <= '9'
 }
 
 // skipWhitespace calls readChar until it encounters a non whitespace character
