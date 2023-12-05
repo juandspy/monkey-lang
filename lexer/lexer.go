@@ -40,6 +40,16 @@ func (l *Lexer) readChar() {
 	l.readPosition += 1
 }
 
+// peekChar is like readChar but it doesn't increment the l.position nor l.readPosition.
+// It returns the character at the l.readPosition
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	} else {
+		return l.input[l.readPosition]
+	}
+}
+
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
@@ -48,7 +58,18 @@ func (l *Lexer) NextToken() token.Token {
 	// Get the token from the current character under examination
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		// TODO: unify this case with the "!" case to avoid duplication of code. Create a "makeTwoCharToken" method
+		if l.peekChar() == '=' {
+			// if the next char is also a "=", then the token is "EQ"
+			ch := l.ch // store the current character before we move the l.readPosition
+			// increment the l.readPosition so that the next "=" is not read again
+			l.readChar()
+			// use the new l.readPosition to get the next character and join with the current
+			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			// otherwise the token is "ASSIGN"
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case '(':
@@ -66,7 +87,17 @@ func (l *Lexer) NextToken() token.Token {
 	case '-':
 		tok = newToken(token.MINUS, l.ch)
 	case '!':
-		tok = newToken(token.BANG, l.ch)
+		if l.peekChar() == '=' {
+			// if the next char is a "=", then the token is "NOT_EQ"
+			ch := l.ch // store the current character before we move the l.readPosition
+			// increment the l.readPosition so that the next "=" is not read again
+			l.readChar()
+			// use the new l.readPosition to get the next character and join with the current
+			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			// otherwise the token is "BANG"
+			tok = newToken(token.BANG, l.ch)
+		}
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
 	case '/':
