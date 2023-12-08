@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/juandspy/monkey-lang/ast"
 	"github.com/juandspy/monkey-lang/lexer"
 	"github.com/juandspy/monkey-lang/token"
@@ -11,15 +13,28 @@ type Parser struct {
 	l         *lexer.Lexer
 	curToken  token.Token // current token
 	peekToken token.Token // next token
+	errors    []string    // errors found during the parsing
 }
 
 // New returns a pointer to a Parser that has been initialized calling `nextToken`
 // twice so that curToken and peekToken are both set
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l}
+	p := &Parser{l: l, errors: []string{}}
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+// Errors return the parse errors
+func (p *Parser) Errors() []string {
+	return p.errors
+}
+
+// peekError stores an error for an unexpected type for the next (peek) token
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
+		t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) nextToken() {
@@ -85,12 +100,14 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 }
 
 // expectPeek checks whether the peekToken is of a given type and advances the positions.
+// If the type is unexpected, it calls `p.peekError`.
 // This is useful for ensuring the order of the tokens inside the statement is correct.
 func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
 	} else {
+		p.peekError(t)
 		return false
 	}
 }
