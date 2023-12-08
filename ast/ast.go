@@ -35,7 +35,7 @@ func (p *Program) TokenLiteral() string {
 
 // LetStatement stores the Name and the Value of the definition of a variable
 type LetStatement struct {
-	Token token.Token // the token.LET token Name *Identifier
+	Token token.Token // the 'let' token
 	Name  *Identifier
 	Value Expression
 }
@@ -52,3 +52,12 @@ type Identifier struct {
 
 func (i *Identifier) expressionNode()      {}
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+// ReturnStatement stores the Value returned
+type ReturnStatement struct {
+	Token token.Token // the 'return' token
+	Value Expression
+}
+
+func (ls *ReturnStatement) statementNode()       {}
+func (ls *ReturnStatement) TokenLiteral() string { return ls.Token.Literal }
