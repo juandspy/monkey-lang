@@ -8,12 +8,21 @@ import (
 	"github.com/juandspy/monkey-lang/token"
 )
 
+type (
+	prefixParseFn func() ast.Expression
+	// the argument of infixParseFn is the left side of the expression
+	infixParseFn func(ast.Expression) ast.Expression
+)
+
 // Parser works similarly to Lexer, but reading tokens instead of characters
 type Parser struct {
 	l         *lexer.Lexer
 	curToken  token.Token // current token
 	peekToken token.Token // next token
 	errors    []string    // errors found during the parsing
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 // New returns a pointer to a Parser that has been initialized calling `nextToken`
@@ -122,4 +131,14 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		p.peekError(t)
 		return false
 	}
+}
+
+// registerPrefix adds a prefixParseFn to the prefixParseFns map
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+// registerInfix adds a infixParseFn to the infixParseFns map
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
