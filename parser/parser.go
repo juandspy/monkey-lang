@@ -61,6 +61,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -227,6 +228,57 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	expression := &ast.IfExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		// the if expression is expected to be like `if (x) {...` so we need to check the next token is LPAREN
+		return nil
+	}
+	p.nextToken()
+	// the condition is always an expression, not a block statement
+	expression.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		// the expression is like `if (x) {...`
+		//                              ^
+		// so we need to check this     | parenthesis
+		return nil
+	}
+	// remember that expectPeek calls nextToken if the token type is the one we expect
+	if !p.expectPeek(token.LBRACE) {
+		// the expression is like `if (x) {...`
+		//                                ^
+		// so we need to check this       | brace
+		return nil
+	}
+	expression.Consequence = p.parseBlockStatement()
+
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+		if !p.expectPeek(token.LBRACE) {
+			// the expression is like `if (x) {...} else {...}`
+			//                                           ^
+			// so we need to check this                  | brace
+			return nil
+		}
+		expression.Alternative = p.parseBlockStatement()
+	}
+	return expression
+}
+
+// curTokenIs checks whether the current token is of a given type
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{Token: p.curToken}
+	block.Statements = []ast.Statement{}
+
+	p.nextToken()
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		block.Statements = append(block.Statements, p.parseStatement())
+		p.nextToken()
+	}
+	return block
 }
 
 // curTokenIs checks whether the current token is of a given type
