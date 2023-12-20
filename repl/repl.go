@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/juandspy/monkey-lang/evaluator"
 	"github.com/juandspy/monkey-lang/lexer"
+	"github.com/juandspy/monkey-lang/object"
 	"github.com/juandspy/monkey-lang/parser"
 )
 
@@ -13,6 +15,8 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
+
 	for {
 		fmt.Print(PROMPT)
 		// read the user input
@@ -30,8 +34,11 @@ func Start(in io.Reader, out io.Writer) {
 			printParserErrors(out, p.Errors())
 			continue
 		}
-		io.WriteString(out, program.String())
-		io.WriteString(out, "\n")
+		evaluated := evaluator.Eval(program, env)
+		if evaluated != nil {
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
 
