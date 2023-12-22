@@ -2,6 +2,17 @@
 
 An interpreter written in Go, based on the https://interpreterbook.com.
 
+## Running the REPL locally
+
+You just need to have go installed. Then run:
+
+```
+git clone https://github.com/juandspy/monkey-lang.git
+go run main.go
+```
+
+and start writing Monkey lang code.
+
 ## Language specs
 
 ### Operators
